@@ -14,24 +14,28 @@ class BaseSignUpSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['username', 'email', 'password', 'password2']
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {'password': {'write_only': True}, 'password2': {'write_only': True}}
+
+    def validate(self, data):
+        if data['password'] != data['password2']:
+            raise serializers.ValidationError({'password': 'Passwords must match.'})
+        return data
 
     def save(self, is_doctor=False, is_patient=False, **kwargs):
-        user = User(
+        user = User.objects.create_user(
             email=self.validated_data['email'],
             username=self.validated_data['username'],
+            password=self.validated_data['password']
         )
-        password = self.validated_data['password']
-        password2 = self.validated_data['password2']
-        if password != password2:
-            raise serializers.ValidationError({'password': 'Passwords must match.'})
-        user.set_password(password)
-        user.save()
 
         if is_doctor:
             Doctor.objects.create(user=user)
+            user.is_doctor = True
         elif is_patient:
             Patient.objects.create(user=user)
+            user.is_patient = True
+
+        user.save()
 
         return user
 
