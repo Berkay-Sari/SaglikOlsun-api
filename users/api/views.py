@@ -53,6 +53,7 @@ class CustomAuthToken(ObtainAuthToken):
 
 
 class LogoutView(APIView):
+    @staticmethod
     def post(self, request):
         request.auth.delete()
         return Response(status=status.HTTP_200_OK)
