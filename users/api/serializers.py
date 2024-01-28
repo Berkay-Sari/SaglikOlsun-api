@@ -21,6 +21,12 @@ class BaseSignUpSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'password': 'Passwords must match.'})
         return data
 
+    @staticmethod
+    def validate_email(value):
+        if User.objects.filter(email=value).exists():
+            raise serializers.ValidationError('This email is already in use.')
+        return value
+
     def save(self, is_doctor=False, is_patient=False, **kwargs):
         user = User.objects.create_user(
             email=self.validated_data['email'],
