@@ -5,7 +5,28 @@ from users.models import User, Patient, Doctor
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['username', 'email', 'is_patient']
+        fields = ['username', 'email', 'birth_date', 'gender', 'is_patient', 'is_doctor']
+
+
+class BasicUserSerializer(UserSerializer):
+    class Meta(UserSerializer.Meta):
+        fields = ['username', 'email', 'birth_date', 'gender']
+
+
+class DoctorSerializer(serializers.ModelSerializer):
+    user = BasicUserSerializer()
+
+    class Meta:
+        model = Doctor
+        fields = '__all__'
+
+
+class PatientSerializer(serializers.ModelSerializer):
+    user = BasicUserSerializer()
+
+    class Meta:
+        model = Patient
+        fields = '__all__'
 
 
 class BaseSignUpSerializer(serializers.ModelSerializer):
@@ -21,8 +42,8 @@ class BaseSignUpSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError({'password': 'Passwords must match.'})
         return data
 
-    @staticmethod
-    def validate_email(value):
+    # noinspection PyMethodMayBeStatic
+    def validate_email(self, value):
         if User.objects.filter(email=value).exists():
             raise serializers.ValidationError('This email is already in use.')
         return value

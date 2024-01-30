@@ -11,7 +11,6 @@ class User(AbstractUser):
     is_doctor = models.BooleanField(default=False)
     birth_date = models.DateField(null=True, blank=True)
     gender = models.CharField(max_length=10, null=True, blank=True)
-    age = models.IntegerField(null=True, blank=True)
 
     def __str__(self):
         return self.username
