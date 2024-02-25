@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from users.models import User, Patient, Doctor
+from users.models import User, Patient, Doctor, EmergencyContact
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -81,3 +81,19 @@ class PatientSignUpSerializer(BaseSignUpSerializer):
 
     def save(self, **kwargs):
         return super().save(is_patient=True, **kwargs)
+
+
+class EmergencyContactSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmergencyContact
+        fields = '__all__'
+
+    def create(self, validated_data):
+        return EmergencyContact.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        instance.name = validated_data.get('name', instance.name)
+        instance.phone_number = validated_data.get('phone_number', instance.phone_number)
+        instance.relationship = validated_data.get('relationship', instance.relationship)
+        instance.save()
+        return instance

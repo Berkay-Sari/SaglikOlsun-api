@@ -1,14 +1,15 @@
-from rest_framework import generics, status, permissions
+from rest_framework import generics, status
 from rest_framework.authtoken.models import Token
+from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.generics import get_object_or_404
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.authtoken.views import ObtainAuthToken
 
 from .permissions import IsDoctorUser, IsPatientUser
 from .serializers import (UserSerializer, DoctorSerializer, PatientSerializer, DoctorSignUpSerializer,
                           PatientSignUpSerializer)
-from ..models import Doctor
+from ..models import Doctor, Patient
 
 
 class DoctorSignUpView(generics.CreateAPIView):
@@ -56,13 +57,14 @@ class CustomAuthToken(ObtainAuthToken):
 
 
 class LogoutView(APIView):
+    # noinspection PyMethodMayBeStatic
     def post(self, request):
         request.auth.delete()
         return Response(status=status.HTTP_200_OK)
 
 
 class PatientOnlyView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated & IsPatientUser]
+    permission_classes = [IsAuthenticated & IsPatientUser]
     serializer_class = PatientSerializer
 
     def get_object(self):
@@ -70,7 +72,7 @@ class PatientOnlyView(generics.RetrieveAPIView):
 
 
 class DoctorOnlyView(generics.RetrieveAPIView):
-    permission_classes = [permissions.IsAuthenticated & IsDoctorUser]
+    permission_classes = [IsAuthenticated & IsDoctorUser]
     serializer_class = DoctorSerializer
 
     def get_object(self):
@@ -78,7 +80,7 @@ class DoctorOnlyView(generics.RetrieveAPIView):
 
 
 class AddDoctorToPatientView(generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated & IsPatientUser]
+    permission_classes = [IsAuthenticated & IsPatientUser]
     serializer_class = PatientSerializer
 
     def get_object(self):
@@ -101,7 +103,7 @@ class AddDoctorToPatientView(generics.UpdateAPIView):
 
 
 class ListDoctorsOfPatientView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated & IsPatientUser]
+    permission_classes = [IsAuthenticated & IsPatientUser]
     serializer_class = DoctorSerializer
 
     def get_queryset(self):
@@ -109,7 +111,7 @@ class ListDoctorsOfPatientView(generics.ListAPIView):
 
 
 class ListPatientsOfDoctorView(generics.ListAPIView):
-    permission_classes = [permissions.IsAuthenticated & IsDoctorUser]
+    permission_classes = [IsAuthenticated & IsDoctorUser]
     serializer_class = PatientSerializer
 
     def get_queryset(self):
@@ -117,7 +119,7 @@ class ListPatientsOfDoctorView(generics.ListAPIView):
 
 
 class UpdateDoctorDataView(generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated & IsDoctorUser]
+    permission_classes = [IsAuthenticated & IsDoctorUser]
     serializer_class = DoctorSerializer
 
     def get_object(self):
@@ -125,7 +127,7 @@ class UpdateDoctorDataView(generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         doctor = self.get_object()
-        fields_to_update = ['birth_date', 'gender', 'speciality', 'background', 'start_date']
+        fields_to_update = [field.name for field in Doctor._meta.get_fields()] + ['birth_date', 'gender']
 
         for field in fields_to_update:
             if field in request.data:
@@ -146,7 +148,7 @@ class UpdateDoctorDataView(generics.UpdateAPIView):
 
 
 class UpdatePatientDataView(generics.UpdateAPIView):
-    permission_classes = [permissions.IsAuthenticated & IsPatientUser]
+    permission_classes = [IsAuthenticated & IsPatientUser]
     serializer_class = PatientSerializer
 
     def get_object(self):
@@ -154,8 +156,7 @@ class UpdatePatientDataView(generics.UpdateAPIView):
 
     def update(self, request, *args, **kwargs):
         patient = self.get_object()
-        fields_to_update = ['birth_date', 'gender', 'height', 'weight', 'blood_type', 'allergies', 'medications',
-                            'emergency_contact']
+        fields_to_update = [field.name for field in Patient._meta.get_fields()] + ['birth_date', 'gender']
 
         for field in fields_to_update:
             if field in request.data:

@@ -16,14 +16,40 @@ class User(AbstractUser):
         return self.username
 
 
+class EmergencyContact(models.Model):
+    name = models.CharField(max_length=50)
+    phone_number = models.CharField(max_length=20)
+    relationship = models.CharField(max_length=50)
+
+    def __str__(self):
+        return self.name
+
+
 class Patient(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, primary_key=True)
+    emergency_contact = models.ForeignKey(EmergencyContact, on_delete=models.CASCADE, null=True, blank=True)
     height = models.IntegerField(null=True, blank=True)
     weight = models.IntegerField(null=True, blank=True)
     blood_type = models.CharField(max_length=10, null=True, blank=True)
     allergies = models.TextField(null=True, blank=True)
     medications = models.TextField(null=True, blank=True)
-    emergency_contact = models.TextField(null=True, blank=True)
+    general_health = models.TextField(null=True, blank=True)
+    checkup = models.TextField(null=True, blank=True)
+    exercise = models.TextField(null=True, blank=True)
+    heart_disease = models.TextField(default=False)
+    skin_cancer = models.TextField(default=False)
+    other_cancer = models.TextField(default=False)
+    depression = models.TextField(default=False)
+    diabetes = models.TextField(default=False)
+    arthritis = models.TextField(default=False)
+    sex = models.TextField(default=False)
+    age_category = models.TextField(default=False)
+    bmi = models.FloatField(default=False)
+    smoking_history = models.TextField(default=False)
+    alcohol_consumption = models.FloatField(default=False)
+    fruit_consumption = models.FloatField(default=False)
+    green_vegetable_consumption = models.FloatField(default=False)
+    fried_potato_consumption = models.FloatField(default=False)
 
     def __str__(self):
         return self.user.username
