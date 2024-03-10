@@ -118,28 +118,42 @@ class ListPatientsOfDoctorView(generics.ListAPIView):
         return self.request.user.doctor.patients.all()
 
 
-class UpdateDoctorDataView(generics.UpdateAPIView):
+class UpdateUserDataView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        raise NotImplementedError("Subclasses must implement this method.")
+
+    def update(self, request, *args, **kwargs):
+        user_data = self.get_object()
+        common_fields = ['first_name', 'last_name', 'birth_date', 'gender']
+        sub_fields = [field.name for field in user_data._meta.get_fields()]
+        fields_to_update = common_fields + sub_fields
+
+        for field in fields_to_update:
+            if field in request.data:
+                if hasattr(user_data.user, field):
+                    setattr(user_data.user, field, request.data[field])
+                else:
+                    setattr(user_data, field, request.data[field])
+
+        user_data.user.save()
+        user_data.save()
+
+        return self.get_response(user_data)
+
+    def get_response(self, user_data):
+        raise NotImplementedError("Subclasses must implement this method.")
+
+
+class UpdateDoctorDataView(UpdateUserDataView):
     permission_classes = [IsAuthenticated & IsDoctorUser]
     serializer_class = DoctorSerializer
 
     def get_object(self):
         return self.request.user.doctor
 
-    def update(self, request, *args, **kwargs):
-        doctor = self.get_object()
-        fields_to_update = [field.name for field in Doctor._meta.get_fields()] + ['birth_date', 'gender']
-
-        for field in fields_to_update:
-            if field in request.data:
-                print(field)
-                if hasattr(doctor.user, field):
-                    setattr(doctor.user, field, request.data[field])
-                else:
-                    setattr(doctor, field, request.data[field])
-
-        doctor.user.save()
-        doctor.save()
-
+    def get_response(self, doctor):
         return Response({
             "message": f"Doctor '{doctor}' updated successfully.",
             "doctor_id": doctor.pk,
@@ -147,27 +161,14 @@ class UpdateDoctorDataView(generics.UpdateAPIView):
         }, status=status.HTTP_200_OK)
 
 
-class UpdatePatientDataView(generics.UpdateAPIView):
+class UpdatePatientDataView(UpdateUserDataView):
     permission_classes = [IsAuthenticated & IsPatientUser]
     serializer_class = PatientSerializer
 
     def get_object(self):
         return self.request.user.patient
 
-    def update(self, request, *args, **kwargs):
-        patient = self.get_object()
-        fields_to_update = [field.name for field in Patient._meta.get_fields()] + ['birth_date', 'gender']
-
-        for field in fields_to_update:
-            if field in request.data:
-                if hasattr(patient.user, field):
-                    setattr(patient.user, field, request.data[field])
-                else:
-                    setattr(patient, field, request.data[field])
-
-        patient.user.save()
-        patient.save()
-
+    def get_response(self, patient):
         return Response({
             "message": f"Patient '{patient}' updated successfully.",
             "patient_id": patient.pk,

@@ -10,7 +10,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 class BasicUserSerializer(UserSerializer):
     class Meta(UserSerializer.Meta):
-        fields = ['username', 'email', 'birth_date', 'gender']
+        fields = ['username', 'first_name', 'last_name', 'email', 'birth_date', 'gender']
 
 
 class DoctorSerializer(serializers.ModelSerializer):
