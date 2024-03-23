@@ -15,10 +15,20 @@ class BasicUserSerializer(UserSerializer):
 
 class DoctorSerializer(serializers.ModelSerializer):
     user = BasicUserSerializer()
+    num_patients = serializers.SerializerMethodField()
 
     class Meta:
         model = Doctor
         fields = '__all__'
+
+    def get_num_patients(self, obj):
+        return obj.patients.count()
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        ret['num_patients'] = self.get_num_patients(instance)
+        print(ret['num_patients'])
+        return ret
 
 
 class PatientSerializer(serializers.ModelSerializer):
