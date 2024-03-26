@@ -189,11 +189,9 @@ class IsPatientView(APIView):
 
 class PredictHeartDiseaseView(APIView):
     permission_classes = [IsAuthenticated & IsPatientUser]
-    serializer_class = PatientSerializer
 
-    def post(self, request):
+    def get(self, request):
         patient = self.request.user.patient
-        data = {}
         data = {}
         general_health_mapping = {
             'Poor': 0,
@@ -202,49 +200,17 @@ class PredictHeartDiseaseView(APIView):
             'Very Good': 3,
             'Excellent': 4
         }
-        boolean_mapping = {
-            True: 1,
-            False: 0
-        }
-
-        smoking_mapping = {
-            True: -1,
-            False: 0
-        }
 
         checkup_mapping = {'Within the past year': 4, 'Within the past 2 years': 2, 'Within the past 5 years': 1,
                            '5 or more years ago': 0.2, 'Never': 0}
 
         def map_age_category(age):
             age = int(age)
-            if 18 <= age <= 24:
-                return 0
-            elif 25 <= age <= 29:
-                return 1
-            elif 30 <= age <= 34:
-                return 2
-            elif 35 <= age <= 39:
-                return 3
-            elif 40 <= age <= 44:
-                return 4
-            elif 45 <= age <= 49:
-                return 5
-            elif 50 <= age <= 54:
-                return 6
-            elif 55 <= age <= 59:
-                return 7
-            elif 60 <= age <= 64:
-                return 8
-            elif 65 <= age <= 69:
-                return 9
-            elif 70 <= age <= 74:
-                return 10
-            elif 75 <= age <= 79:
-                return 11
-            elif age >= 80:
+            if age >= 80:
                 return 12
-            else:
-                return None  # Handle cases where the age category is not found
+            elif age < 24:
+                return 0
+            return age // 5 - 4
 
         def map_bmi_category(patient_bmi):
             if float(patient_bmi) <= 18.5:
@@ -257,17 +223,17 @@ class PredictHeartDiseaseView(APIView):
                 return 3
 
         data['General_Health'] = general_health_mapping[patient.general_health]
-        data['Exercise'] = boolean_mapping[patient.exercise]
-        data['Skin_Cancer'] = boolean_mapping[patient.skin_cancer]
-        data['Other_Cancer'] = boolean_mapping[patient.other_cancer]
-        data['Depression'] = boolean_mapping[patient.depression]
-        data['Diabetes'] = boolean_mapping[patient.diabetes]
-        data['Arthritis'] = boolean_mapping[patient.arthritis]
+        data['Exercise'] = int(patient.exercise)
+        data['Skin_Cancer'] = int(patient.skin_cancer)
+        data['Other_Cancer'] = int(patient.other_cancer)
+        data['Depression'] = int(patient.depression)
+        data['Diabetes'] = int(patient.diabetes)
+        data['Arthritis'] = int(patient.arthritis)
         data['Age_Category'] = map_age_category(patient.age_category)
         data['Height_(cm)'] = patient.height
         data['Weight_(kg)'] = patient.weight
         data['BMI'] = patient.bmi
-        data['Smoking_History'] = smoking_mapping[patient.smoking_history]
+        data['Smoking_History'] = -int(patient.smoking_history)
         data['Alcohol_Consumption'] = patient.alcohol_consumption
         data['Fruit_Consumption'] = patient.fruit_consumption
         data['Green_Vegetables_Consumption'] = patient.green_vegetable_consumption
@@ -298,7 +264,7 @@ class PredictHeartDiseaseView(APIView):
 
         df = pd.DataFrame([data])
 
-        model = joblib.load('/Users/berkaysari/Desktop/api/models/trained_model.pkl')
+        model = joblib.load('models/trained_model.pkl')
 
         prediction = model.predict(df)
         return Response({'prediction': prediction}, status=status.HTTP_200_OK)
