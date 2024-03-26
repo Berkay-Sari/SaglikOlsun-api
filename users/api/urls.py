@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (DoctorSignUpView, PatientSignUpView, CustomAuthToken, LogoutView, DoctorOnlyView, PatientOnlyView,
                     AddDoctorToPatientView, ListDoctorsOfPatientView, ListPatientsOfDoctorView, UpdateDoctorDataView,
-                    UpdatePatientDataView, IsPatientView)
+                    UpdatePatientDataView, IsPatientView, PredictHeartDiseaseView)
 
 urlpatterns = [
     path('signup/doctor', DoctorSignUpView.as_view(), name='doctor_signup'),
@@ -16,4 +16,5 @@ urlpatterns = [
     path('doctor/update', UpdateDoctorDataView.as_view(), name='update_doctor'),
     path('patient/update', UpdatePatientDataView.as_view(), name='update_patient'),
     path('is-patient/', IsPatientView.as_view(), name='is_patient'),
+    path('predict-heart-disease/', PredictHeartDiseaseView.as_view(), name='predict_heart_disease'),
 ]
