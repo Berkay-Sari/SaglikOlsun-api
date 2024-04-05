@@ -12,6 +12,9 @@ from .permissions import IsDoctorUser, IsPatientUser
 from .serializers import (UserSerializer, DoctorSerializer, PatientSerializer, DoctorSignUpSerializer,
                           PatientSignUpSerializer)
 from ..models import Doctor
+import google.generativeai as genai
+
+chat_model = genai.GenerativeModel(f'tunedModels/generate-num-8847')
 
 
 class DoctorSignUpView(generics.CreateAPIView):
@@ -268,3 +271,19 @@ class PredictHeartDiseaseView(APIView):
 
         prediction = model.predict(df)
         return Response({'prediction': prediction}, status=status.HTTP_200_OK)
+
+
+class ChatbotResponseView(APIView):
+    def post(self, request, *args, **kwargs):
+        message = request.data.get('message', '')
+
+        if not message:
+            return Response({"error": "Message field is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            result = chat_model.generate_content(message)
+
+        except Exception as e:
+            return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"response": result.text}, status=status.HTTP_200_OK)
