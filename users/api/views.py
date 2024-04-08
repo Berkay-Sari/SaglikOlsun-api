@@ -1,3 +1,5 @@
+import re
+
 import joblib
 import pandas as pd
 from rest_framework import generics, status
@@ -11,10 +13,33 @@ from rest_framework.views import APIView
 from .permissions import IsDoctorUser, IsPatientUser
 from .serializers import (UserSerializer, DoctorSerializer, PatientSerializer, DoctorSignUpSerializer,
                           PatientSignUpSerializer)
-from ..models import Doctor
+from ..models import Doctor, Patient
 import google.generativeai as genai
+from google.cloud import translate
 
-chat_model = genai.GenerativeModel(f'tunedModels/generate-num-8847')
+chat_model = genai.GenerativeModel(f'tunedModels/generate-num-7619')
+
+EN = "en-US"
+TR = "tr"
+PROJECT_ID = "valid-flow-412916"
+
+
+def translate_text(text="Hello, world!", source_language="en-US", target_language="tr"):
+    client = translate.TranslationServiceClient()
+    location = "global"
+    parent = f"projects/{PROJECT_ID}/locations/{location}"
+
+    response = client.translate_text(
+        request={
+            "parent": parent,
+            "contents": [text],
+            "mime_type": "text/plain",
+            "source_language_code": source_language,
+            "target_language_code": target_language,
+        }
+    )
+    for translation in response.translations:
+        return translation.translated_text
 
 
 class DoctorSignUpView(generics.CreateAPIView):
@@ -107,12 +132,43 @@ class AddDoctorToPatientView(generics.UpdateAPIView):
         }, status=status.HTTP_200_OK)
 
 
+class AddPatientToDoctorView(generics.UpdateAPIView):
+    permission_classes = [IsAuthenticated & IsDoctorUser]
+    serializer_class = DoctorSerializer
+
+    def get_object(self):
+        return self.request.user.doctor
+
+    def update(self, request, *args, **kwargs):
+        doctor = self.get_object()
+        patient_username = request.data.get('patient_username')
+
+        patient = get_object_or_404(Patient, user__username=patient_username)
+
+        doctor.patients.add(patient)
+        patient.doctors.add(doctor)
+
+        return Response({
+            "message": f"Patient '{patient.user.username}' added to doctor '{doctor.user.username}' successfully.",
+            "doctor_id": doctor.pk,
+            "patient_id": patient.pk,
+        }, status=status.HTTP_200_OK)
+
+
 class ListDoctorsOfPatientView(generics.ListAPIView):
     permission_classes = [IsAuthenticated & IsPatientUser]
     serializer_class = DoctorSerializer
 
     def get_queryset(self):
         return self.request.user.patient.doctors.all()
+
+
+class ListAllPatientsView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated & IsDoctorUser]
+    serializer_class = PatientSerializer
+
+    def get_queryset(self):
+        return PatientSerializer.Meta.model.objects.all()
 
 
 class ListPatientsOfDoctorView(generics.ListAPIView):
@@ -269,8 +325,8 @@ class PredictHeartDiseaseView(APIView):
 
         model = joblib.load('models/trained_model.pkl')
 
-        prediction = model.predict(df)
-        return Response({'prediction': prediction}, status=status.HTTP_200_OK)
+        prediction = model.predict_proba(df)
+        return Response({'prediction': prediction[0][1]}, status=status.HTTP_200_OK)
 
 
 class ChatbotResponseView(APIView):
@@ -281,9 +337,12 @@ class ChatbotResponseView(APIView):
             return Response({"error": "Message field is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            message = translate_text(text=message, source_language=TR, target_language=EN)
             result = chat_model.generate_content(message)
 
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        return Response({"response": result.text}, status=status.HTTP_200_OK)
+        chat_response = translate_text(text=result.text, source_language=EN, target_language=TR)
+        modified_text = re.sub(r'\* +\*+', '\n', chat_response)
+        modified_text = re.sub(r'\*\*', '\n', modified_text)
+        return Response({"response": modified_text}, status=status.HTTP_200_OK)
